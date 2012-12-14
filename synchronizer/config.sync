@@ -1,0 +1,44 @@
+[GENERAL]
+
+#is this instance running as client or as server
+
+mode = server
+#mode = client
+
+[SERVER]
+
+# This has been changed consistently to MICROSECONDS! We partially used
+# Nanoseconds before, because Xen internally uses nanos, but scaling
+# from nanoseconds to microseconds is automatically done in the scheduler
+# 
+#The virtual time provided to the clients every period (in MICROSECONDS!!)
+srv_barrier_interval = 100
+
+#the server rebroadcasts the last run msg. to avoid dead locking in case
+#one of those gets lost
+srv_rebroadcast_period = 2000000
+
+#the broadcast address the server sends its run msg to (broadcast address!)
+srv_brdcast_address = 192.168.3.255
+
+#The port the server socket is bound to
+server_port = 17600
+
+# The number of clients which need to be registered before the first run permission is sent
+min_clients = 3
+
+# The maximum number of periods to run (<= 0 for "infinite")
+max_period = 0
+
+
+[CLIENT]
+#numerical id of the clients. must not exceed MAX_CLIENTS in synchronizer.h
+client_id = 10
+#client type, as in synchronization.h
+client_type= 133
+
+#the remote synchronization server to connect to.
+client_sync_server = 10.0.0.4
+
+#client port: the port the clients bind to
+client_port = 17601

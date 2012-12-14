@@ -1,0 +1,17 @@
+This folder will contain the synchronizing component that runs in the priliged domain of Xen
+
+The component will support a server mode and a client mode:
+
+In the server mode, this program acts as a sychronization server that synchronizes clients using
+the barrier algorithm. The clients can be local Xen Guests, remote Xen Guests scheduled by a remote xen-sychronizer
+running in client mode or simulation clients themselves. Local guests, however, are directy managed by the server
+through hypercalls or syscalls (?) and they are directly registered at the server.
+
+In client mode, the xen-synchronizer registers as at a xen server using a communication protocol specified
+/communication based on UDP. Clients run either in a synchronized or unsynchronized mode. Within the synchronized mode,
+the xen-synchronizer client waits for the the server to permit guests to run for a certain amount of time, after which
+execution is suspended. The server is notified afterwards.
+â
+
+
+
