@@ -1,0 +1,24 @@
+## -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
+
+def build(bld):
+    module = bld.create_ns3_module('slicetime', ['core'])
+    module.source = [
+                'model/sync-tunnel-bridge.cc',
+                'model/sync-tunnel-comm.cc',
+		'helper/sync-tunnel-bridge-helper.cc',
+		'model/sync-simulator-impl.cc',
+		'model/sync-client.cc'
+        ]
+
+    headers = bld.new_task_gen(features=['ns3header'])
+    headers.module = 'slicetime'
+    headers.source = [
+                'model/sync-tunnel-bridge.h',
+                'model/sync-tunnel-comm.h',
+		'helper/sync-tunnel-bridge-helper.h',
+		'model/sync-simulator-impl.h',
+		'model/sync-client.h'
+        ]
+
+    if bld.env['ENABLE_EXAMPLES']:
+        bld.add_subdirs('examples')

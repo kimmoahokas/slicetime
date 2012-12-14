@@ -1,0 +1,25 @@
+## -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
+
+def build(bld):
+    # deprecated because V4PeriodicPing doesn't exist anymore
+    #obj = bld.create_ns3_program('chain-hvm', ['csma', 'internet-stack', 'global-routing', 'slicetime'])
+    #obj.source = 'chain-hvm.cc'
+
+    obj = bld.create_ns3_program('http-net-linear', ['csma', 'internet-stack', 'global-routing', 'slicetime'])
+    obj.source = 'http-net-linear.cc'
+
+    obj = bld.create_ns3_program('http-net-stars', ['csma', 'internet-stack', 'global-routing', 'slicetime'])
+    obj.source = 'http-net-stars.cc'
+    
+    # deprecated because V4PeriodicPing doesn't exist anymore
+    #obj = bld.create_ns3_program('sync-ping-double', ['csma', 'internet-stack', 'global-routing', 'slicetime'])
+    #obj.source = 'sync-ping-double.cc'
+
+    obj = bld.create_ns3_program('sync-delay', ['csma', 'internet-stack', 'global-routing', 'slicetime'])
+    obj.source = 'sync-delay.cc'
+
+    obj = bld.create_ns3_program('sync-channel', ['csma', 'internet-stack', 'core', 'slicetime'])
+    obj.source = 'sync-channel.cc'
+
+    obj = bld.create_ns3_program('sync-router', ['csma', 'internet-stack', 'core', 'global-routing', 'slicetime'])
+    obj.source = 'sync-router.cc'
