@@ -11,6 +11,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#define DEBUG 0
 Configuration cf(CONFIGFILE_NAME);
 std::string mode;
 int sock;
@@ -52,10 +53,17 @@ int client_period = -1; //-1 denots not started
  * Afterwards, the data is simply stored in adequate data structures.
  */
 void srv_sendRunPermission() {
-
-	//printf("Sending RunPermission: periodId: %i,runtime: %i\n", ntohl(srv_runpermission.periodId), ntohl(srv_runpermission.runTime));
+	char buf[10];
+	if (DEBUG) {
+	    printf("Sending RunPermission: periodId: %i\n",
+		   ntohl(srv_runpermission.periodId));
+	}
+	else if (seqNr % 1000 == 0) {
+	    printf ("Sendin permission for sequence %i\n", seqNr);
+	}
 	//first of all, mutual exclusion for safety reasons :)
 
+	//fgets(buf, 10, stdin);
 	int psize = sizeof(COM_SyncPacket) + sizeof(srv_runpermission);
 
 	struct COM_SyncPacket *packet=(struct COM_SyncPacket*) malloc(psize);
@@ -66,13 +74,20 @@ void srv_sendRunPermission() {
 	memcpy(&(packet->data),&srv_runpermission,sizeof(COM_RunPermission));
 
 	struct sockaddr_in destination;
-
-	destination.sin_family = AF_INET;
+    destination.sin_family = AF_INET;
 	destination.sin_addr.s_addr = inet_addr(srv_brdcast_address.c_str());
-	destination.sin_port = htons(client_port);
-
-	int bytes_sent = sendto(sock, packet, psize, 0,(struct sockaddr*) &destination, sizeof(struct sockaddr_in) );
-	if(bytes_sent < 0) printf("Error sending packet: %s\n", strerror(errno) );
+	
+    // send run permission to multiple ports because broadcast is not supported
+    // on localhost. ports are in range from "client_port" to "client_port +
+    // number of clients - 1"
+	for (int i=0;i<srv_recClientCounter;i++) {
+	    if (DEBUG)
+		printf("Sending packet to port: %i\n", client_port + i);
+	    destination.sin_port = htons(client_port + i);
+	    int bytes_sent = sendto(sock, packet, psize, 0,(struct sockaddr*) &destination, sizeof(struct sockaddr_in) );
+	    if(bytes_sent < 0) printf("Error sending packet: %s\n", strerror(errno) );
+	}
+	
 	//free packet memory
 	free(packet);
 
@@ -168,10 +183,9 @@ void handle_pkt_finished(COM_Finished* fin) {
 	int clientPeriodId=ntohl(fin->periodId);
 	int runtime=ntohl(fin->runTime);
 	int realtime=ntohl(fin->realTime);
-//	printf("Received Finished MSG: client=%i,periodId=%u,runTime=%u,realTime=%u (hex: %X)\n",
-//			clientId, clientPeriodId, runtime, realtime,realtime);
-	//printf("Received Finished MSG: client=%i,periodId=%u,runTime=%u,realTime=%u\n",
-	//		clientId, clientPeriodId, runtime, realtime);
+	if (DEBUG)
+	    printf("Received Finished MSG: client=%i,periodId=%u,runTime=%u,realTime=%u\n",
+		   clientId, clientPeriodId, runtime, realtime);
 
 	/*
 	 * check for valid data, otherwise return.
@@ -217,24 +231,25 @@ void handle_pkt_finished(COM_Finished* fin) {
 	}
 
 	if (finished==false) {
-
-		//printf("Not all clients have reported to be finished yet");
-		return;
+	    if (DEBUG)
+		printf("Not all clients have reported to be finished yet");
+	    return;
 
 	} else {
-		//printf("All clients have finished the current period\n");
-		//printf("Stepping further.");
+	    if (DEBUG)
+		printf("All clients have finished the current period\n");
 
-		//increase current period;
-		srv_currentPeriod++;
-		//printf("Next PeriodId: %i, Runtime=%i\n", srv_currentPeriod,
-		//		srv_barrierunTime);
+	    //increase current period;
+	    srv_currentPeriod++;
+	    if (DEBUG)
+		printf("Next PeriodId: %i, Runtime=%i\n", srv_currentPeriod,
+			    srv_barrierunTime);
 
-		//increase runpermission struct for transmission
+	    //increase runpermission struct for transmission
 
-		srv_runpermission.periodId=htonl(srv_currentPeriod);
-		srv_runpermission.runTime=htonl(srv_barrierunTime);
-		srv_sendRunPermission();
+	    srv_runpermission.periodId=htonl(srv_currentPeriod);
+	    srv_runpermission.runTime=htonl(srv_barrierunTime);
+	    srv_sendRunPermission();
 
 	}
 
@@ -257,9 +272,9 @@ int mainServer() {
 	}
 	srv_barrierunTime = cf.getAsInt("SERVER", "srv_barrier_interval");
 	srv_brdcast_address = cf.getAsString("SERVER", "srv_brdcast_address");
-
+	
 	srv_maxPeriod = cf.getAsInt("SERVER", "max_period");
-
+	
 	srv_runpermission.periodId=htonl(srv_currentPeriod);
 	srv_runpermission.runTime=htonl(srv_barrierunTime);
 
@@ -289,18 +304,22 @@ int mainServer() {
 	if (bound < 0)
 		fprintf(stderr, "binding failed: bind(): %s\n",strerror(errno));
 
+	printf("Server port: %i, client port: %i, runtime: %i microseconds (%.3f seconds)\n",
+	       server_port, client_port, srv_barrierunTime, srv_barrierunTime/1000000.0); 
 	uint8_t buffer[32000];
 
 	//initialize pthread for periodic retransmission!
 
 	while (true) {
 		int bytes_received = recv (sock, buffer, 32000, 0);
-		//printf ("Data received, length: %i\n", bytes_received);
+		if (DEBUG)
+		    printf ("Data received, length: %i\n", bytes_received);
 		COM_SyncPacket packet;
 		memcpy(&packet, &buffer, bytes_received);
-		//printf("Packet type: %i\n", packet.packetType);
-		//printf("Packet SeqNr: %i\n", ntohl(packet.seqNr));
-
+		if (DEBUG) {
+		    printf("Packet type: %i\n", packet.packetType);
+		    printf("Packet SeqNr: %i\n", ntohl(packet.seqNr));
+		}
 		//Packet handling
 		//Determine Packet Type
 		//Call adequate packet handler by creating pointer to packet payload
@@ -308,23 +327,16 @@ int mainServer() {
 		//Everything else is simply disregarded
 
 		if (packet.packetType==PACKETTYPE_REGISTER) {
-
-			printf("\n\n handling register packet now \n\n");
 			handle_pkt_register((COM_RegisterClient*) &packet.data);
 
 		} else if (packet.packetType==PACKETTYPE_UNREGISTER) {
-
-			printf("\n\n handling UNregister packet now \n\n");
 			handle_pkt_unregisterClient((COM_UnregisterClient*) &packet.data);
 
 		} else if (packet.packetType==PACKETTYPE_FINISHED) {
-
-			//printf("\n\n handling finished packet now \n\n");
 			handle_pkt_finished((COM_Finished*) &packet.data);
 
 		}
 		else{
-
 			printf("\n\n Unknown packet received \n\n");
 		}
 		if ((srv_maxPeriod > 0) && (srv_currentPeriod >= srv_maxPeriod)) break;
@@ -332,6 +344,7 @@ int mainServer() {
 	}
 
 	printf("Server stopped after period %i\n", srv_currentPeriod);
+			
 	return 0;
 }
 

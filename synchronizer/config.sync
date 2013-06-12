@@ -12,17 +12,20 @@ mode = server
 # from nanoseconds to microseconds is automatically done in the scheduler
 # 
 #The virtual time provided to the clients every period (in MICROSECONDS!!)
+#srv_barrier_interval = 1000000 // 1 second
+# 1000 = millisecond
 srv_barrier_interval = 100
+
 
 #the server rebroadcasts the last run msg. to avoid dead locking in case
 #one of those gets lost
 srv_rebroadcast_period = 2000000
 
 #the broadcast address the server sends its run msg to (broadcast address!)
-srv_brdcast_address = 192.168.3.255
+srv_brdcast_address = 127.0.0.1
 
 #The port the server socket is bound to
-server_port = 17600
+server_port = 1234
 
 # The number of clients which need to be registered before the first run permission is sent
 min_clients = 3
@@ -41,4 +44,4 @@ client_type= 133
 client_sync_server = 10.0.0.4
 
 #client port: the port the clients bind to
-client_port = 17601
+client_port = 17544
