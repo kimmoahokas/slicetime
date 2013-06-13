@@ -117,6 +117,16 @@ class SyncTunnelBridge : public NetDevice
 public:
   static TypeId GetTypeId (void);
 
+/**
+   * Enumeration of the operating modes supported in the class.
+   *
+   */
+  enum Mode {
+    ILLEGAL,         /**< mode not set */
+    USE_LOCAL,       /**< ns-3 uses a pre-created tap, without configuring it */
+    USE_BRIDGE, /**< ns-3 uses a pre-created tap, and bridges to a bridging net device */
+  };
+
   SyncTunnelBridge ();
   virtual ~SyncTunnelBridge ();
 
@@ -148,6 +158,8 @@ public:
    */
   void ForwardToBridgedDevice (uint8_t *buf, uint32_t len);
 
+  void SetMode (enum Mode mode);
+  SyncTunnelBridge::Mode GetMode (void);
   //
   // The following methods are inherited from NetDevice base class
   //
@@ -225,6 +237,33 @@ private:
 
   // stores whether this bridge has been started
   bool m_isStarted;
+  
+    /**
+   * \internal
+   *     
+   * The operating mode of the bridge.  Tells basically who creates and
+   * configures the underlying network tap.
+   */
+  Mode m_mode;
+  
+  /**
+   * \internal
+   *
+   * The MAC address to use as the hardware address on the host; only used
+   * in UseLocal mode.  This value comes from the MAC  
+   * address assigned to the bridged ns-3 net device and matches the MAC 
+   * address of the underlying network TAP which we configured to have the 
+   * same value.
+   */
+  Mac48Address m_tapMac;
+  
+  /**
+   * \internal
+   *
+   * Whether the MAC address of the underlying ns-3 device has already been
+   * rewritten is stored in this variable (for UseLocal mode only).
+   */
+  bool m_ns3AddressRewritten;
 
 };
 

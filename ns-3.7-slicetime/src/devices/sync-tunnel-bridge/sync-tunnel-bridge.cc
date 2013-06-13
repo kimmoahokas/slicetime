@@ -31,10 +31,16 @@
 #include "ns3/llc-snap-header.h"
 #include "ns3/log.h"
 #include "ns3/abort.h"
+#include "ns3/boolean.h"
+#include "ns3/string.h"
+#include "ns3/enum.h"
 #include "ns3/integer.h"
 #include "ns3/uinteger.h"
 #include "ns3/ipv4.h"
 #include "ns3/simulator.h"
+#include "ns3/realtime-simulator-impl.h"
+#include "ns3/sync-simulator-impl.h"
+#include "ns3/system-thread.h"
 
 #include <sys/socket.h>
 #include <errno.h>
@@ -67,6 +73,12 @@ SyncTunnelBridge::GetTypeId (void)
                    IntegerValue (17),
                    MakeIntegerAccessor (&SyncTunnelBridge::m_flowId),
                    MakeIntegerChecker<int32_t> ())
+    .AddAttribute ("Mode", 
+                   "The operating and configuration mode to use.",
+                   EnumValue (USE_BRIDGE),
+                   MakeEnumAccessor (&SyncTunnelBridge::m_mode),
+                   MakeEnumChecker (USE_LOCAL, "UseLocal",
+                                    USE_BRIDGE, "UseBridge"))
     ;
   return tid;
 }
@@ -152,6 +164,34 @@ SyncTunnelBridge::ForwardToBridgedDevice (uint8_t *buf, uint32_t len)
   NS_LOG_LOGIC ("Pkt source is " << src);
   NS_LOG_LOGIC ("Pkt destination is " << dst);
   NS_LOG_LOGIC ("Pkt LengthType is " << type);
+
+  if (m_mode == USE_LOCAL)
+    {
+      //
+      // Packets we are going to forward should not be from a broadcast src
+      //
+      NS_ASSERT_MSG (Mac48Address::ConvertFrom (src) != Mac48Address ("ff:ff:ff:ff:ff:ff"), 
+                     "TapBridge::ForwardToBridgedDevice:  Source addr is broadcast");
+      if (m_ns3AddressRewritten == false)
+        {
+          //
+          // Set the ns-3 device's mac address to the overlying container's
+          // mac address
+          //
+          Mac48Address learnedMac = Mac48Address::ConvertFrom (src);
+          NS_LOG_LOGIC ("Learned MacAddr is " << learnedMac << ": setting ns-3 device to use this address");
+          m_bridgedDevice->SetAddress (Mac48Address::ConvertFrom (learnedMac));
+          m_ns3AddressRewritten = true;
+        }
+      // 
+      // If we are operating in USE_LOCAL mode, we may be attached to an ns-3
+      // device that does not support bridging (SupportsSendFrom returns false).
+      // But, since the mac addresses are now aligned, we can call Send()
+      //
+      NS_LOG_LOGIC ("Forwarding packet to ns-3 device via Send()");
+      m_bridgedDevice->Send (packet, dst, type);
+      return;
+    }
 
   // send the packet from the bridged device
   // (SendFrom has to be used since on the other side of the tunnel is another bridge
@@ -242,7 +282,7 @@ SyncTunnelBridge::SetBridgedNetDevice (Ptr<NetDevice> bridgedDevice)
       NS_FATAL_ERROR ("SyncTunnelBridge::SetBridgedDevice: Device does not support eui 48 addresses: cannot be added to bridge.");
     }
   
-  if (!bridgedDevice->SupportsSendFrom ())
+  if (m_mode == USE_BRIDGE && !bridgedDevice->SupportsSendFrom ())
     {
       NS_FATAL_ERROR ("SyncTunnelBridge::SetBridgedDevice: Device does not support SendFrom: cannot be added to bridge.");
     }
@@ -493,10 +533,25 @@ SyncTunnelBridge::SupportsSendFrom () const
   return true;
 }
 
-Address SyncTunnelBridge::GetMulticast (Ipv6Address addr) const
+Address
+SyncTunnelBridge::GetMulticast (Ipv6Address addr) const
 {
   NS_LOG_FUNCTION (this << addr);
   return Mac48Address::GetMulticast (addr);
+}
+
+  void 
+SyncTunnelBridge::SetMode (enum Mode mode)
+{
+  NS_LOG_FUNCTION (mode);
+  m_mode = mode;
+}
+
+SyncTunnelBridge::Mode
+SyncTunnelBridge::GetMode (void)
+{
+  NS_LOG_FUNCTION_NOARGS ();
+  return m_mode;
 }
 
 } // namespace ns3
