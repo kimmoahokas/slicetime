@@ -1,0 +1,36 @@
+## -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
+
+def configure(conf):
+    if not conf.env['ENABLE_THREADING']:
+        conf.report_optional_feature("WifiEmuBridge", "Wifi Emulation Bridge",
+                                     False,
+                                     "needs threading support which is not available")
+    else:
+        conf.env['ENABLE_WIFI_EMU'] = True
+
+def build(bld):
+    module = bld.create_ns3_module('wifi-emu-bridge', ['node'])
+    module.source = [
+        ]
+    headers = bld.new_task_gen('ns3header')
+    headers.module = 'wifi-emu-bridge'
+    headers.source = [
+        ]
+
+    env = bld.env_of_name('default')
+    if env['ENABLE_WIFI_EMU']:
+        module.source.extend([
+            'wifi-emu-tag.cc',
+            'wifi-emu-bridge.cc',
+            'wifi-emu-comm.cc',
+            'wifi-emu-comm-udp.cc'
+                ])
+        headers.source.extend([
+            'wifi-emu-msg.h',
+            'wifi-emu-tag.h',
+            'wifi-emu-bridge.h',
+            'wifi-emu-comm.h',
+            'wifi-emu-comm-udp.h'
+                ])
+
+

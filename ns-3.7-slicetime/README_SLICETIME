@@ -1,0 +1,112 @@
+This is a modified ns-3.7 distribution containing changes of SliceTime for synchronization and WiFi Emulation.
+Please note that synchronization and WiFi Emulation need not always be used together.
+
+An example for WiFi emulation can be found in scratch/wifi-emu-ap.cc (requires wifi-emu0-kern Linux driver)
+An example for synchronization can be found in scratch/sync-channel.cc (requires the udp tunnel tool)
+
+Notes on Wifi Emulation usage
+-----------------------------
+
+1. To use the Wifi Emulation, use the Realtime Simulator and enable checksum calculation. To use it with SliceTime, use the Synchronization simulator.
+
+     GlobalValue :: Bind ( " SimulatorImplementationType ",StringValue ("ns3 :: RealtimeSimulatorImpl") ) ;
+     GlobalValue :: Bind ( " ChecksumEnabled ",BooleanValue (true) ) ;
+
+2. The WifiEmuBridge can be used using it helper class WifiEmuBridgeHelper.
+     WifiEmuBridgeHelper wbridge ;
+   
+3. Set the options as given in the example below.
+     wbridge . SetAttribute ( " ClientId " , IntegerValue(42) ) ;
+     wbridge . Install ( c.Get(0) , staDevice.Get(0) ) ;
+
+4. The different options for the WifiEmuBridge are
+
+     Name                        		Type    	    Default Value	     Comments
+     ===============================================================================================================================================
+     WifiEmuBridge::ClientId     		uint16 		          1                  Used to match the corresponding gateway nodes to driver 
+											     instances registering at the simulation
+		
+     WifiEmuCommType		     		Enum		     CommTypeUdp	     Communication Method
+                      
+     WifiEmuCommUdpReceiveAddress               Ipv4Address            0.0.0.0		     UDP endpoint address
+ 
+     WifiEmuCommUdpReceivePort                  uint16  		1984		     UDP endpoint port
+
+
+
+Modified files:
+---------------
+
+Files for synchronization:
+==========================
+src/devices/emu/emu-net-device.*
+src/devices/tap-bridge/tap-bridge.*
+src/simulator/sync-simulator-impl.*
+src/simulator/sync-client.*
+src/devices/sync-tunnel-bridge/*
+src/helper/sync-tunnel-bridge-helper.*
+
+
+Duplex CSMA channel:
+====================
+src/devices/csma-duplex/*
+src/helper/csma-duplex-helper.*
+
+Files added for WifiEmu:
+========================
+src/helper/wifi-emu-bridge-helper.*: Helper for WifiEmuBridge
+src/devices/wifi-emu-bridge/wifi-emu-bridge.*: Main device
+src/devices/wifi-emu-bridge/wifi-emu-comm.*: Generic communication helper
+src/devices/wifi-emu-bridge/wifi-emu-comm-udp.*: UDP specific communication helper
+src/devices/wifi-emu-bridge/wifi-emu-msg.h: message format (same as for wifi-emu kernel module)
+src/devices/wifi-emu-bridge/wifi-emu-tag.*: Message Tag used for an internal callback
+
+
+Modifications for WifiEmuBridge:
+================================
+src/devices/wifi/aarfcd-wifi-manager.*: Added GetCurrentMode()
+src/devices/wifi/amrr-wifi-manager.*: Added GetCurrentMode()
+src/devices/wifi/arf-wifi-manager.*: Added GetCurrentMode()
+src/devices/wifi/cara-wifi-manager.*: Added GetCurrentMode()
+src/devices/wifi/constant-rate-wifi-manager.*: Added GetCurrentMode()
+src/devices/wifi/ideal-wifi-manager.*: Added GetCurrentMode()
+src/devices/wifi/minstrel-wifi-manager.*: Added GetCurrentMode()
+src/devices/wifi/onoe-wifi-manager.*: Added GetCurrentMode()
+src/devices/wifi/rraa-wifi-manager.*: Added GetCurrentMode()
+src/devices/wifi/wifi-remote-station-manager.*: Added GetCurrentMode() and changed thresholds to account for LLC header
+
+src/devices/wifi/dca-txop.*: Added TxStartCallback
+src/devices/wifi/dcf.h: Added TxStartCallback
+src/devices/wifi/edca-txop-n.*: Added TxStartCallback
+
+src/devices/wifi/mac-low.*: Added MacLowTxCallback
+
+src/devices/mesh/mesh-wifi-interface-mac.*: Added DcfTxStartCallback
+src/devices/wifi/adhoc-wifi-mac.*: Added DcfTxStartCallback
+src/devices/wifi/nqap-wifi-mac.*: Added DcfTxStartCallback
+src/devices/wifi/qadhoc-wifi-mac.*: Added DcfTxStartCallback
+src/devices/wifi/qap-wifi-mac.*: Added DcfTxStartCallback
+src/devices/wifi/qsta-wifi-mac.*: Added DcfTxStartCallback
+
+src/devices/wifi/yans-wifi-phy.cc: Added support for WifiSignalNoiseTag
+src/devices/wifi/wifi-signal-noise-tag.cc: WifiSignalNoiseTag
+src/devices/wifi/wifi-signal-noise-tag.h: WifiSignalNoiseTag
+
+src/devices/wifi/wifi-mac.*:
+  Added DcfTxStartCallback
+  added scanning support
+src/devices/wifi/nqsta-wifi-mac.*:
+  Added DcfTxStartCallback
+  reset bssid when link is lost
+  build new association when SSID is changed
+  added scanning support
+
+src/devices/wifi/wifi-phy.h: Added PromiscSniffRxCallback
+
+src/devices/wifi/propagation-loss-model.*: Added two-ray ground and matrix propagation loss models of ns-3.8
+
+src/devices/wifi/wifi-net-device.*:
+  Fixed MTU to account for LLC header
+  added scanning support
+
+

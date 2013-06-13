@@ -1,0 +1,33 @@
+## -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
+
+def configure(conf):
+    if not conf.env['ENABLE_THREADING']:
+        conf.report_optional_feature("SyncTunnelBridge", "Sync-Tunnel Bridge",
+                                     False,
+                                     "needs threading support which is not available")
+    else:
+        conf.env['ENABLE_SYNC_TUNNEL'] = True
+
+def build(bld):
+    module = bld.create_ns3_module('sync-tunnel-bridge', ['node'])
+    module.source = [
+        ]
+    headers = bld.new_task_gen('ns3header')
+    headers.module = 'sync-tunnel-bridge'
+    headers.source = [
+        ]
+
+    env = bld.env_of_name('default')
+    if env['ENABLE_SYNC_TUNNEL']:
+        module.source.extend([
+                'sync-tunnel-bridge.cc',
+                'sync-tunnel-comm.cc'
+                ])
+        headers.source.extend([
+                'sync-tunnel-bridge.h',
+                'sync-tunnel-comm.h'
+                ])
+
+
+
+
